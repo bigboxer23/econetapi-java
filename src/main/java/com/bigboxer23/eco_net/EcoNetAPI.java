@@ -1,10 +1,15 @@
 package com.bigboxer23.eco_net;
 
 import com.bigboxer23.eco_net.data.EcoNetLoginData;
+import com.bigboxer23.eco_net.data.UserData;
 import com.bigboxer23.utils.http.OkHttpUtil;
+import com.bigboxer23.utils.http.RequestBuilderCallback;
+import com.bigboxer23.utils.json.JsonMapBuilder;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -48,15 +53,13 @@ public class EcoNetAPI {
 		try (Response response = OkHttpUtil.postSynchronous(
 				baseUrl + "user/auth",
 				RequestBody.create(URLDecoder.decode(
-								"{\"email\": \"" + email + "\", \"password\": \"" + password + "\"}",
+								new JsonMapBuilder()
+										.put("email", email)
+										.put("password", password)
+										.toJson(),
 								StandardCharsets.UTF_8.displayName())
 						.getBytes(StandardCharsets.UTF_8)),
-				(builder) -> {
-					builder.addHeader("ClearBlade-SystemKey", CLEAR_BLADE_SYSTEM_KEY)
-							.addHeader("ClearBlade-SystemSecret", CLEAR_BLADE_SYSTEM_SECRET)
-							.addHeader("Content-Type", "application/json; charset=UTF-8");
-					return builder;
-				})) {
+				getHeaders(null))) {
 			Optional<EcoNetLoginData> body = OkHttpUtil.getBody(response, EcoNetLoginData.class);
 			if (body.isPresent() && !body.get().getOptions().isSuccess()) {
 				logger.error("getAccountIDAndToken: " + body.get().getOptions().getMessage());
@@ -67,5 +70,41 @@ public class EcoNetAPI {
 			logger.error("getAccountIDAndToken", e);
 			return Optional.empty();
 		}
+	}
+
+	public Optional<UserData> fetchUserData() {
+		try (Response response = OkHttpUtil.postSynchronous(
+				baseUrl + "/code/" + CLEAR_BLADE_SYSTEM_KEY + "/getUserDataForApp",
+				RequestBody.create(URLDecoder.decode(
+								new JsonMapBuilder()
+										.put("location_only", false)
+										.put("type", "com.econet.econetconsumerandroid")
+										.put("version", "6.0.0-375-01b4870e")
+										.toJson(),
+								StandardCharsets.UTF_8.displayName())
+						.getBytes(StandardCharsets.UTF_8)),
+				getHeaders(Collections.singletonMap("ClearBlade-UserToken", userToken)))) {
+			Optional<UserData> body = OkHttpUtil.getBody(response, UserData.class);
+			if (body.isPresent() && !body.get().isSuccess()) {
+				logger.error("fetchUserData: ");
+				return Optional.empty();
+			}
+			return body;
+		} catch (IOException e) {
+			logger.error("fetchUserData", e);
+			return Optional.empty();
+		}
+	}
+
+	private static RequestBuilderCallback getHeaders(Map<String, String> headers) {
+		return builder -> {
+			builder.addHeader("ClearBlade-SystemKey", CLEAR_BLADE_SYSTEM_KEY)
+					.addHeader("ClearBlade-SystemSecret", CLEAR_BLADE_SYSTEM_SECRET)
+					.addHeader("Content-Type", "application/json; charset=UTF-8");
+			if (headers != null) {
+				headers.forEach(builder::addHeader);
+			}
+			return builder;
+		};
 	}
 }
