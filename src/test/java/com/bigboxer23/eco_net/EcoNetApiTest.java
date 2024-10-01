@@ -2,8 +2,9 @@ package com.bigboxer23.eco_net;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.bigboxer23.eco_net.data.UserData;
 import com.bigboxer23.utils.properties.PropertyUtils;
-import java.io.IOException;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /** Need to define environment variables for econet_email/econet_password to run tests */
@@ -33,5 +34,21 @@ public class EcoNetApiTest {
 		} catch (RuntimeException e) {
 
 		}
+	}
+
+	@Test
+	public void getUserData() {
+		Optional<UserData> result = EcoNetAPI.getInstance(email, password).fetchUserData();
+		assertTrue(result.isPresent());
+		assertFalse(result.get().getResults().getLocations().isEmpty());
+		assertFalse(
+				result.get().getResults().getLocations().get(0).getEquipments().isEmpty());
+		assertNotNull(result.get()
+				.getResults()
+				.getLocations()
+				.get(0)
+				.getEquipments()
+				.get(0)
+				.getType());
 	}
 }
