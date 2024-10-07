@@ -1,6 +1,7 @@
 package com.bigboxer23.eco_net;
 
 import com.bigboxer23.eco_net.data.EcoNetLoginData;
+import com.bigboxer23.eco_net.data.EcoNetMQTTEvent;
 import com.bigboxer23.eco_net.data.UserData;
 import com.bigboxer23.eco_net.mqtt.EcoNetMQTTConnectOptions;
 import com.bigboxer23.eco_net.mqtt.IEventSubscriber;
@@ -131,9 +132,23 @@ public class EcoNetAPI implements IEcoNetConstants {
 					public void messageArrived(String topic, MqttMessage message) {
 						subscribers.forEach(s -> {
 							try {
-								s.messageReceived(topic, message);
-							} catch (IOException e) {
-								logger.error("messageArrived: ", e);
+								Optional.ofNullable(OkHttpUtil.getMoshi()
+												.adapter(EcoNetMQTTEvent.class)
+												.fromJson(new String(message.getPayload())))
+										.map(e -> {
+											e.setTopic(topic);
+											e.setPayload(message.toString());
+											return e;
+										})
+										.ifPresent(e -> {
+											try {
+												s.messageReceived(e);
+											} catch (IOException ioE) {
+												logger.error("messageArrived: ", ioE);
+											}
+										});
+							} catch (IOException ioE) {
+								logger.error("messageArrived: ", ioE);
 							}
 						});
 					}

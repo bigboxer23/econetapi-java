@@ -68,7 +68,7 @@ public class EcoNetApiTest {
 	@Test
 	public void subscribeToEvents() throws InterruptedException {
 		EcoNetAPI.getInstance(email, password)
-				.subscribeToEvents((topic, message) -> logger.info(topic + ": " + message.toString()));
+				.subscribeToEvents((message) -> logger.info(message.getTopic() + " " + message.getPayload()));
 		int count = 0;
 		while (count < 7) {
 			Thread.sleep(10000);
