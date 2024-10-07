@@ -2,37 +2,41 @@ package com.bigboxer23.eco_net;
 
 import com.bigboxer23.eco_net.data.EcoNetLoginData;
 import com.bigboxer23.eco_net.data.UserData;
+import com.bigboxer23.eco_net.mqtt.EcoNetMQTTConnectOptions;
+import com.bigboxer23.eco_net.mqtt.IEventSubscriber;
 import com.bigboxer23.utils.http.OkHttpUtil;
 import com.bigboxer23.utils.http.RequestBuilderCallback;
 import com.bigboxer23.utils.json.JsonMapBuilder;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** */
-public class EcoNetAPI {
+public class EcoNetAPI implements IEcoNetConstants {
 	private static final Logger logger = LoggerFactory.getLogger(EcoNetAPI.class);
-	protected static final String baseUrl = "https://rheem.clearblade.com/api/v/1/";
 
 	private static EcoNetAPI instance;
 
+	private static MqttAsyncClient mqttClient;
+
+	private List<IEventSubscriber> subscribers = new ArrayList<>();
 	private final String userToken;
 	private final String accountId;
 
-	private static final String CLEAR_BLADE_SYSTEM_KEY = "e2e699cb0bb0bbb88fc8858cb5a401";
-	private static final String CLEAR_BLADE_SYSTEM_SECRET = "E2E699CB0BE6C6FADDB1B0BC9A20";
+	private final String email;
 
-	private EcoNetAPI(String accountId, String userToken) {
+	private EcoNetAPI(String accountId, String userToken, String email) {
 		this.accountId = accountId;
 		this.userToken = userToken;
+		this.email = email;
 	}
 
 	public static EcoNetAPI getInstance(String email, String password) {
@@ -43,7 +47,7 @@ public class EcoNetAPI {
 
 		return Optional.ofNullable(instance).orElseGet(() -> {
 			instance = getAccountIDAndToken(email, password)
-					.map(data -> new EcoNetAPI(data.getOptions().getAccountId(), data.getUserToken()))
+					.map(data -> new EcoNetAPI(data.getOptions().getAccountId(), data.getUserToken(), email))
 					.orElse(null);
 			return instance;
 		});
@@ -106,5 +110,70 @@ public class EcoNetAPI {
 			}
 			return builder;
 		};
+	}
+
+	private String getClientId() {
+		return email + System.currentTimeMillis() + "_android";
+	}
+
+	private void initMQTTConnection() {
+		if (mqttClient == null) {
+			try {
+				mqttClient = new MqttAsyncClient(MQTT_URL, getClientId(), new MemoryPersistence());
+				mqttClient.setCallback(new MqttCallback() {
+
+					@Override
+					public void connectionLost(Throwable cause) {
+						logger.warn("connectionLost: ", cause);
+					}
+
+					@Override
+					public void messageArrived(String topic, MqttMessage message) {
+						subscribers.forEach(s -> {
+							try {
+								s.messageReceived(topic, message);
+							} catch (IOException e) {
+								logger.error("messageArrived: ", e);
+							}
+						});
+					}
+
+					@Override
+					public void deliveryComplete(IMqttDeliveryToken token) {
+						logger.warn("deliveryComplete: " + token.isComplete());
+					}
+				});
+				logger.info("Connecting to broker: " + MQTT_URL);
+				IMqttToken connectToken = mqttClient.connect(new EcoNetMQTTConnectOptions(userToken));
+				connectToken.waitForCompletion(TIMEOUT);
+				logger.info("Connected");
+				mqttClient
+						.subscribe("user/" + accountId + "/device/reported", QOS)
+						.waitForCompletion(TIMEOUT);
+				mqttClient
+						.subscribe("user/" + accountId + "/device/desired", QOS)
+						.waitForCompletion(TIMEOUT);
+				logger.info("Subscribed");
+
+			} catch (MqttException me) {
+				logger.error("subscribeToEvents", me);
+			}
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+				logger.info("disconnecting mqtt client");
+				Optional.ofNullable(mqttClient).ifPresent(client -> {
+					try {
+						client.disconnect();
+					} catch (MqttException e) {
+						logger.error("disconnect", e);
+					}
+				});
+				mqttClient = null;
+			}));
+		}
+	}
+
+	public void subscribeToEvents(IEventSubscriber subscriber) {
+		initMQTTConnection(); // Init if necessary
+		subscribers.add(subscriber);
 	}
 }

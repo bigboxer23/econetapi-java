@@ -6,9 +6,14 @@ import com.bigboxer23.eco_net.data.UserData;
 import com.bigboxer23.utils.properties.PropertyUtils;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Need to define environment variables for econet_email/econet_password to run tests */
 public class EcoNetApiTest {
+
+	private static final Logger logger = LoggerFactory.getLogger(EcoNetApiTest.class);
+
 	private static final String email = PropertyUtils.getProperty("econet_email");
 
 	private static final String password = PropertyUtils.getProperty("econet_password");
@@ -58,5 +63,16 @@ public class EcoNetApiTest {
 				.get(0)
 				.getSetpoint()
 				.getValue());
+	}
+
+	@Test
+	public void subscribeToEvents() throws InterruptedException {
+		EcoNetAPI.getInstance(email, password)
+				.subscribeToEvents((topic, message) -> logger.info(topic + ": " + message.toString()));
+		int count = 0;
+		while (count < 7) {
+			Thread.sleep(10000);
+			logger.info("sleeping " + (count++ * 10));
+		}
 	}
 }
