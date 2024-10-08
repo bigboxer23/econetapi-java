@@ -1,18 +1,14 @@
 package com.bigboxer23.eco_net;
 
-import com.bigboxer23.eco_net.data.EcoNetLoginData;
-import com.bigboxer23.eco_net.data.EcoNetMQTTEvent;
-import com.bigboxer23.eco_net.data.UserData;
+import com.bigboxer23.eco_net.data.*;
 import com.bigboxer23.eco_net.mqtt.EcoNetMQTTConnectOptions;
 import com.bigboxer23.eco_net.mqtt.IEventSubscriber;
+import com.bigboxer23.utils.http.OkHttpRequestBodyUtils;
 import com.bigboxer23.utils.http.OkHttpUtil;
 import com.bigboxer23.utils.http.RequestBuilderCallback;
 import com.bigboxer23.utils.json.JsonMapBuilder;
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.paho.client.mqttv3.*;
@@ -45,7 +41,6 @@ public class EcoNetAPI implements IEcoNetConstants {
 			logger.error("need to define email and password values.");
 			throw new RuntimeException("need to define email and password values.");
 		}
-
 		return Optional.ofNullable(instance).orElseGet(() -> {
 			instance = getAccountIDAndToken(email, password)
 					.map(data -> new EcoNetAPI(data.getOptions().getAccountId(), data.getUserToken(), email))
@@ -57,13 +52,10 @@ public class EcoNetAPI implements IEcoNetConstants {
 	private static Optional<EcoNetLoginData> getAccountIDAndToken(String email, String password) {
 		try (Response response = OkHttpUtil.postSynchronous(
 				baseUrl + "user/auth",
-				RequestBody.create(URLDecoder.decode(
-								new JsonMapBuilder()
-										.put("email", email)
-										.put("password", password)
-										.toJson(),
-								StandardCharsets.UTF_8.displayName())
-						.getBytes(StandardCharsets.UTF_8)),
+				OkHttpRequestBodyUtils.createBodyFromString(new JsonMapBuilder()
+						.put("email", email)
+						.put("password", password)
+						.toJson()),
 				getHeaders(null))) {
 			Optional<EcoNetLoginData> body = OkHttpUtil.getBody(response, EcoNetLoginData.class);
 			if (body.isPresent() && !body.get().getOptions().isSuccess()) {
@@ -80,14 +72,11 @@ public class EcoNetAPI implements IEcoNetConstants {
 	public Optional<UserData> fetchUserData() {
 		try (Response response = OkHttpUtil.postSynchronous(
 				baseUrl + "/code/" + CLEAR_BLADE_SYSTEM_KEY + "/getUserDataForApp",
-				RequestBody.create(URLDecoder.decode(
-								new JsonMapBuilder()
-										.put("location_only", false)
-										.put("type", "com.econet.econetconsumerandroid")
-										.put("version", "6.0.0-375-01b4870e")
-										.toJson(),
-								StandardCharsets.UTF_8.displayName())
-						.getBytes(StandardCharsets.UTF_8)),
+				OkHttpRequestBodyUtils.createBodyFromString(new JsonMapBuilder()
+						.put("location_only", false)
+						.put("type", "com.econet.econetconsumerandroid")
+						.put("version", "6.0.0-375-01b4870e")
+						.toJson()),
 				getHeaders(Collections.singletonMap("ClearBlade-UserToken", userToken)))) {
 			Optional<UserData> body = OkHttpUtil.getBody(response, UserData.class);
 			if (body.isPresent() && !body.get().isSuccess()) {
@@ -97,6 +86,25 @@ public class EcoNetAPI implements IEcoNetConstants {
 			return body;
 		} catch (IOException e) {
 			logger.error("fetchUserData", e);
+			return Optional.empty();
+		}
+	}
+
+	public Optional<EnergyResults> fetchEnergyUsage(
+			String deviceId, String serialNumber, int day, int month, int year) {
+		try (Response response = OkHttpUtil.postSynchronous(
+				baseUrl + "/code/" + CLEAR_BLADE_SYSTEM_KEY + "/dynamicAction",
+				OkHttpRequestBodyUtils.createBodyFromJsonObject(
+						new FetchUsageCommand(deviceId, serialNumber, day, month, year), FetchUsageCommand.class),
+				getHeaders(Collections.singletonMap("ClearBlade-UserToken", userToken)))) {
+			Optional<EnergyResults> body = OkHttpUtil.getBody(response, EnergyResults.class);
+			if (body.isPresent() && !body.get().isSuccess()) {
+				logger.error("fetchEnergyUsage: " + body.get().getLogs());
+				return Optional.empty();
+			}
+			return body;
+		} catch (IOException e) {
+			logger.error("fetchEnergyUsage", e);
 			return Optional.empty();
 		}
 	}
