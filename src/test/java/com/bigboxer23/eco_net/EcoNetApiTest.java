@@ -2,6 +2,9 @@ package com.bigboxer23.eco_net;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.bigboxer23.eco_net.data.EnergyResults;
+import com.bigboxer23.eco_net.data.Equipment;
+import com.bigboxer23.eco_net.data.Location;
 import com.bigboxer23.eco_net.data.UserData;
 import com.bigboxer23.utils.properties.PropertyUtils;
 import java.util.Optional;
@@ -74,5 +77,17 @@ public class EcoNetApiTest {
 			Thread.sleep(10000);
 			logger.info("sleeping " + (count++ * 10));
 		}
+	}
+
+	@Test
+	public void fetchEnergyUsage() {
+		EcoNetAPI api = EcoNetAPI.getInstance(email, password);
+		api.fetchUserData().ifPresent(userData -> {
+			Location location = userData.getResults().getLocations().get(0);
+			Equipment equipment = location.getEquipments().get(0);
+			Optional<EnergyResults> data = api.fetchEnergyUsage(equipment.getDeviceName(), equipment.getSerialNumber(), 8, 10, 2024);
+			assertTrue(data.isPresent());
+			assertNotNull(data.get().getResults());
+		});
 	}
 }
