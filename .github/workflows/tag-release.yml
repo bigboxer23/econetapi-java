@@ -19,7 +19,7 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          token: "${{ secrets.PAT }}"
+          token: "${{ secrets.GH_PAT_FOR_ACTIONS_TOKEN }}"
           prerelease: false
           files: |
             LICENSE.txt

@@ -4,7 +4,7 @@
 
   <groupId>com.bigboxer23</groupId>
   <artifactId>EcoNetAPI-java</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 
   <name>econet-java</name>
   <url>https://github.com/bigboxer23/econetapi-java</url>
