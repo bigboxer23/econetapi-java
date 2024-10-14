@@ -3,8 +3,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.bigboxer23</groupId>
-  <artifactId>EcoNetAPI-java</artifactId>
-  <version>1.0.2</version>
+  <artifactId>econetapi-java</artifactId>
+  <version>1.0.3</version>
 
   <name>econet-java</name>
   <url>https://github.com/bigboxer23/econetapi-java</url>
