@@ -199,4 +199,37 @@ public class EcoNetAPI implements IEcoNetConstants {
 		initMQTTConnection(); // Init if necessary
 		subscribers.add(subscriber);
 	}
+
+	public void setMode(String deviceId, String serialNumber, int mode) {
+		// TODO:
+
+	}
+
+	/**
+	 * Set the heater's temperature setpoint
+	 *
+	 * @param deviceId device id (name)
+	 * @param serialNumber serial number of device
+	 * @param setpoint setpoint to heat to
+	 */
+	public void setTemperatureSetPoint(String deviceId, String serialNumber, int setpoint) {
+		sendCommand(deviceId, serialNumber, "@SETPOINT", setpoint);
+	}
+
+	private void sendCommand(String deviceId, String serialNumber, String command, int value) {
+		initMQTTConnection();
+		try {
+			MqttMessage message = new MqttMessage();
+			message.setPayload(new JsonMapBuilder()
+					.put("transactionId", "ANDROID_" + System.currentTimeMillis())
+					.put("device_name", deviceId)
+					.put("serial_number", serialNumber)
+					.put(command, value)
+					.toJson()
+					.getBytes());
+			mqttClient.publish("user/" + accountId + "/device/desired", message);
+		} catch (MqttException e) {
+			logger.error("sendCommand " + command, e);
+		}
+	}
 }

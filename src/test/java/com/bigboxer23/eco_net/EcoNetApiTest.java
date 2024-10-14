@@ -85,9 +85,39 @@ public class EcoNetApiTest {
 		api.fetchUserData().ifPresent(userData -> {
 			Location location = userData.getResults().getLocations().get(0);
 			Equipment equipment = location.getEquipments().get(0);
-			Optional<EnergyResults> data = api.fetchEnergyUsage(equipment.getDeviceName(), equipment.getSerialNumber(), 8, 10, 2024);
+			Optional<EnergyResults> data =
+					api.fetchEnergyUsage(equipment.getDeviceName(), equipment.getSerialNumber(), 8, 10, 2024);
 			assertTrue(data.isPresent());
 			assertNotNull(data.get().getResults());
+		});
+	}
+
+	@Test
+	public void setTemperatureSetPoint() {
+		EcoNetAPI api = EcoNetAPI.getInstance(email, password);
+		api.fetchUserData().ifPresent(userData -> {
+			Location location = userData.getResults().getLocations().get(0);
+			Equipment equipment = location.getEquipments().get(0);
+			int currentSetpoint = equipment.getSetpoint().getValue();
+			assertNotEquals(132, currentSetpoint);
+			api.setTemperatureSetPoint(equipment.getDeviceName(), equipment.getSerialNumber(), 132);
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException theE) {
+			}
+			api.fetchUserData().ifPresent(updatedUserData -> {
+				assertEquals(
+						132,
+						updatedUserData
+								.getResults()
+								.getLocations()
+								.get(0)
+								.getEquipments()
+								.get(0)
+								.getSetpoint()
+								.getValue());
+			});
+			api.setTemperatureSetPoint(equipment.getDeviceName(), equipment.getSerialNumber(), currentSetpoint);
 		});
 	}
 }
