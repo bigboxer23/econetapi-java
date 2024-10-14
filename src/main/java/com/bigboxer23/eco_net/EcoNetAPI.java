@@ -200,9 +200,15 @@ public class EcoNetAPI implements IEcoNetConstants {
 		subscribers.add(subscriber);
 	}
 
+	/**
+	 * Sets the devices mode
+	 *
+	 * @param deviceId device id (name)
+	 * @param serialNumber serial number of device
+	 * @param mode See {@link Modes} for possible mode values
+	 */
 	public void setMode(String deviceId, String serialNumber, int mode) {
-		// TODO:
-
+		sendCommand(deviceId, serialNumber, "@MODE", mode);
 	}
 
 	/**
@@ -210,7 +216,7 @@ public class EcoNetAPI implements IEcoNetConstants {
 	 *
 	 * @param deviceId device id (name)
 	 * @param serialNumber serial number of device
-	 * @param setpoint setpoint to heat to
+	 * @param setpoint setpoint to heat to in deg fahrenheit
 	 */
 	public void setTemperatureSetPoint(String deviceId, String serialNumber, int setpoint) {
 		sendCommand(deviceId, serialNumber, "@SETPOINT", setpoint);

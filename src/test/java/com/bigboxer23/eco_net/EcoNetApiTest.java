@@ -2,10 +2,7 @@ package com.bigboxer23.eco_net;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.bigboxer23.eco_net.data.EnergyResults;
-import com.bigboxer23.eco_net.data.Equipment;
-import com.bigboxer23.eco_net.data.Location;
-import com.bigboxer23.eco_net.data.UserData;
+import com.bigboxer23.eco_net.data.*;
 import com.bigboxer23.utils.properties.PropertyUtils;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -89,6 +86,34 @@ public class EcoNetApiTest {
 					api.fetchEnergyUsage(equipment.getDeviceName(), equipment.getSerialNumber(), 8, 10, 2024);
 			assertTrue(data.isPresent());
 			assertNotNull(data.get().getResults());
+		});
+	}
+
+	@Test
+	public void setMode() {
+		EcoNetAPI api = EcoNetAPI.getInstance(email, password);
+		api.fetchUserData().ifPresent(userData -> {
+			Location location = userData.getResults().getLocations().get(0);
+			Equipment equipment = location.getEquipments().get(0);
+			Modes currentMode = equipment.getModes();
+			api.setMode(equipment.getDeviceName(), equipment.getSerialNumber(), Modes.VACATION_MODE);
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException theE) {
+			}
+			api.fetchUserData().ifPresent(updatedUserData -> {
+				assertEquals(
+						Modes.VACATION_MODE,
+						updatedUserData
+								.getResults()
+								.getLocations()
+								.get(0)
+								.getEquipments()
+								.get(0)
+								.getModes()
+								.getActiveValue());
+			});
+			api.setMode(equipment.getDeviceName(), equipment.getSerialNumber(), currentMode.getActiveValue());
 		});
 	}
 
