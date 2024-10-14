@@ -63,7 +63,7 @@ EcoNetAPI.getInstance(email, password).fetchUserData().ifPresent(userData -> {
 1. Create an `application.properties` file in `/src/test/resources/application.properties`
 2. Add your email into the file like `econet_email=[EMAIL]`
 3. Add your password into the file like `econet_password=[ACCOUNT_PASSWORD]`
-4Run
+4. Run
 
 ## Installing
 
