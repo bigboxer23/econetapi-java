@@ -26,4 +26,14 @@ public class Equipment {
 
 	@Json(name = "@MODE")
 	private Modes modes;
+
+	@Json(name = "@RUNNING")
+	private String compressorStatus;
+
+	@Json(name = "@HOTWATER")
+	private String tankStatusUrl;
+
+	public float getTankStatus() {
+		return TankStatus.getTankStatus(tankStatusUrl);
+	}
 }

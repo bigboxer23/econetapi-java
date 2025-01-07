@@ -63,6 +63,21 @@ public class EcoNetApiTest {
 				.get(0)
 				.getSetpoint()
 				.getValue());
+		assertTrue(result.get()
+						.getResults()
+						.getLocations()
+						.get(0)
+						.getEquipments()
+						.get(0)
+						.getTankStatus()
+				>= 0);
+		assertNotNull(result.get()
+				.getResults()
+				.getLocations()
+				.get(0)
+				.getEquipments()
+				.get(0)
+				.getCompressorStatus());
 	}
 
 	@Test
