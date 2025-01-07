@@ -24,7 +24,7 @@ public class EcoNetAPI implements IEcoNetConstants {
 
 	private static MqttAsyncClient mqttClient;
 
-	private List<IEventSubscriber> subscribers = new ArrayList<>();
+	private final List<IEventSubscriber> subscribers = new ArrayList<>();
 	private final String userToken;
 	private final String accountId;
 
@@ -74,10 +74,10 @@ public class EcoNetAPI implements IEcoNetConstants {
 				baseUrl + "/code/" + CLEAR_BLADE_SYSTEM_KEY + "/getUserDataForApp",
 				OkHttpRequestBodyUtils.createBodyFromString(new JsonMapBuilder()
 						.put("location_only", false)
-						.put("type", "com.econet.econetconsumerandroid")
-						.put("version", "6.0.0-375-01b4870e")
+						.put("type", TYPE)
+						.put("version", VERSION)
 						.toJson()),
-				getHeaders(Collections.singletonMap("ClearBlade-UserToken", userToken)))) {
+				getHeaders(Collections.singletonMap(CLEAR_BLADE_USER_TOKEN, userToken)))) {
 			Optional<UserData> body = OkHttpUtil.getBody(response, UserData.class);
 			if (body.isPresent() && !body.get().isSuccess()) {
 				logger.error("fetchUserData: ");
@@ -96,7 +96,7 @@ public class EcoNetAPI implements IEcoNetConstants {
 				baseUrl + "/code/" + CLEAR_BLADE_SYSTEM_KEY + "/dynamicAction",
 				OkHttpRequestBodyUtils.createBodyFromJsonObject(
 						new FetchUsageCommand(deviceId, serialNumber, day, month, year), FetchUsageCommand.class),
-				getHeaders(Collections.singletonMap("ClearBlade-UserToken", userToken)))) {
+				getHeaders(Collections.singletonMap(CLEAR_BLADE_USER_TOKEN, userToken)))) {
 			Optional<EnergyResults> body = OkHttpUtil.getBody(response, EnergyResults.class);
 			if (body.isPresent() && !body.get().isSuccess()) {
 				logger.error("fetchEnergyUsage: " + body.get().getLogs());
